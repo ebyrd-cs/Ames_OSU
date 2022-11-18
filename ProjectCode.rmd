@@ -66,10 +66,57 @@ plot(y=training_set$SalePrice, x=as.factor(training_set$SaleCondition))
 
 # Ethan's Work
 library(MASS)
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(reshape2)
 
+# Data is skewed
 fit <- fitdistr(training_set$SalePrice, "normal")
 para <- fit$estimate
 x <- rnorm(1000, para[1],para[2])
-hist(training_set$SalePrice, prob = TRUE, breaks = 20, xlab = "Sale Price ($)", ylab = "Density")
+hist(training_set$SalePrice, prob = TRUE, breaks = 50, xlab = "Sale Price ($)", ylab = "Density")
 curve(dnorm(x,para[1],para[2]), col = 2, add = TRUE)
+
+
+# Need to reduce dimensions. Likely good to get rid of redundant and correlated 
+# variables.
+
+num_train <- Filter(is.numeric, training_set)
+num_train <- na.omit(num_train)
+
+cor_mat <- round(cor(num_train),2)
+
+# Correlations limited to combinations >= .65
+cor_mat[!lower.tri(cor_mat)] <- NA # remove diagonal and redundant values
+
+cor_mat <- data.frame(cor_mat) %>%
+              rownames_to_column() %>%
+              gather(key="variable", value="correlation", -rowname) %>%
+              filter(abs(correlation) > 0.6)
+
+# Heat map for correlations
+cc <- round(cor(num_train),2)
+threshold <- 0.6
+cc0 <- cc
+diag(cc0) <- 0
+ok <- apply(abs(cc0) >= threshold, 1, any)
+cc <- cc[ok, ok]
+
+
+
+ 
+
+# reduce the size of correlation matrix
+melted_corr_mat <- melt(cc)
+
+# plotting the correlation heatmap
+library(ggplot2)
+ggplot(data = melted_corr_mat, aes(x=Var1, y=Var2,
+                                   fill=value)) +
+geom_tile() +
+geom_text(aes(Var1, Var2, label = value),
+          color = "black", size = 3) +
+   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  scale_fill_gradient(low = "#ffffff", high = "#ff0000", guide = "colorbar")
 ```
