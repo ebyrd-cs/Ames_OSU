@@ -10,6 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r, warning=FALSE, message=FALSE}
+
+# Generalized the path
+
 library(readr)
 training_set <- read_csv("train.csv")
 
