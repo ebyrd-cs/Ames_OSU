@@ -11,9 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r, warning=FALSE, message=FALSE}
 library(readr)
-training_set <- read_csv("C:/Users/phili/Desktop/OSU_folder/STAT4620/Proj/Ames/train.csv")
+training_set <- read_csv("train.csv")
 
-testing_set <- read_csv("C:/Users/phili/Desktop/OSU_folder/STAT4620/Proj/Ames/test.csv")
+testing_set <- read_csv("test_new.csv")
 
 ```
 
@@ -58,3 +58,15 @@ plot(y=training_set$SalePrice, x=as.factor(training_set$SaleType))
 plot(y=training_set$SalePrice, x=as.factor(training_set$SaleCondition))
 ```
 
+
+```{r}
+
+# Ethan's Work
+library(MASS)
+
+fit <- fitdistr(training_set$SalePrice, "normal")
+para <- fit$estimate
+x <- rnorm(1000, para[1],para[2])
+hist(training_set$SalePrice, prob = TRUE, breaks = 20, xlab = "Sale Price ($)", ylab = "Density")
+curve(dnorm(x,para[1],para[2]), col = 2, add = TRUE)
+```
