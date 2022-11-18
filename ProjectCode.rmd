@@ -1,0 +1,60 @@
+---
+title: "Project"
+author: "Philip Kinnersley (kinnersley.2)"
+date: "2022-11-02"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=FALSE, message=FALSE}
+library(readr)
+training_set <- read_csv("C:/Users/phili/Desktop/OSU_folder/STAT4620/Proj/Ames/train.csv")
+
+testing_set <- read_csv("C:/Users/phili/Desktop/OSU_folder/STAT4620/Proj/Ames/test.csv")
+
+```
+
+Scatterplots
+
+```{r}
+summary(training_set)
+pairs(training_set[,c(4,5,20,21,27)])
+pairs(training_set[,c(35,37,38,39)])
+pairs(training_set[,c(44:48)])
+pairs(training_set[,c(48:53)])
+pairs(training_set[,c(55,57,60,62,63)])
+pairs(training_set[,c(67:71)])
+pairs(training_set[,c(72,76:78)])
+
+pairs(training_set[,c(4,5,27,35,44,63,67)])
+```
+
+Boxplots
+
+```{r}
+plot(y=training_set$SalePrice, x=as.factor(training_set$MSSubClass))
+plot(y=training_set$SalePrice, x=as.factor(training_set$MSZoning))
+plot(y=training_set$SalePrice, x=as.factor(training_set$LotShape))
+plot(y=training_set$SalePrice, x=as.factor(training_set$Utilities))
+plot(y=training_set$SalePrice, x=as.factor(training_set$LandSlope))
+plot(y=training_set$SalePrice, x=as.factor(training_set$Neighborhood))
+plot(y=training_set$SalePrice, x=as.factor(training_set$Condition1))
+plot(y=training_set$SalePrice, x=as.factor(training_set$BldgType))
+plot(y=training_set$SalePrice, x=as.factor(training_set$HouseStyle))
+plot(y=training_set$SalePrice, x=as.factor(training_set$OverallQual))
+plot(y=training_set$SalePrice, x=as.factor(training_set$OverallCond))
+plot(y=training_set$SalePrice, x=as.factor(training_set$RoofStyle))
+plot(y=training_set$SalePrice, x=as.factor(training_set$ExterQual))
+plot(y=training_set$SalePrice, x=as.factor(training_set$Foundation))
+plot(y=training_set$SalePrice, x=as.factor(training_set$BsmtCond))
+plot(y=training_set$SalePrice, x=as.factor(training_set$Heating))
+plot(y=training_set$SalePrice, x=as.factor(training_set$CentralAir))
+plot(y=training_set$SalePrice, x=as.factor(training_set$KitchenQual))
+plot(y=training_set$SalePrice, x=as.factor(training_set$GarageQual))
+plot(y=training_set$SalePrice, x=as.factor(training_set$SaleType))
+plot(y=training_set$SalePrice, x=as.factor(training_set$SaleCondition))
+```
+
