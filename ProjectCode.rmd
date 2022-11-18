@@ -1,6 +1,6 @@
 ---
 title: "Project"
-author: "Philip Kinnersley (kinnersley.2)"
+author: "P.K"
 date: "2022-11-02"
 output: pdf_document
 ---
