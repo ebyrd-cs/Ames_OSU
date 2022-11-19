@@ -65,11 +65,14 @@ plot(y=training_set$SalePrice, x=as.factor(training_set$SaleCondition))
 ```{r}
 
 # Ethan's Work
+
 library(MASS)
 library(dplyr)
 library(tidyr)
 library(tibble)
 library(reshape2)
+library(ggplot2)
+
 
 # Data is skewed
 fit <- fitdistr(training_set$SalePrice, "normal")
@@ -96,20 +99,18 @@ cor_mat <- data.frame(cor_mat) %>%
               filter(abs(correlation) >= 0.6)
 
 # Heat map for correlations
-cc <- round(cor(num_train),2)
+p_cors <- round(cor(num_train),2)
 threshold <- 0.6
-cc0 <- cc
-diag(cc0) <- 0
-ok <- apply(abs(cc0) >= threshold, 1, any)
-cc <- cc[ok, ok]
+p_cors2 <- p_cors
+diag(p_cors2) <- 0
+ok <- apply(abs(p_cors2) >= threshold, 1, any)
+p_cors <- p_cors[ok, ok]
 
 
-
-# reduce the size of correlation matrix
-melted_corr_mat <- melt(cc)
+# Make the correlation matrix into a dataframe
+melted_corr_mat <- melt(p_cors)
 
 # plotting the correlation heatmap
-library(ggplot2)
 ggplot(data = melted_corr_mat, aes(x=Var1, y=Var2,
                                    fill=value)) +
 geom_tile() +
