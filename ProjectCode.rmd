@@ -87,13 +87,13 @@ num_train <- na.omit(num_train)
 
 cor_mat <- round(cor(num_train),2)
 
-# Correlations limited to combinations >= .65
+# Correlations limited to combinations >= .60
 cor_mat[!lower.tri(cor_mat)] <- NA # remove diagonal and redundant values
 
 cor_mat <- data.frame(cor_mat) %>%
               rownames_to_column() %>%
               gather(key="variable", value="correlation", -rowname) %>%
-              filter(abs(correlation) > 0.6)
+              filter(abs(correlation) >= 0.6)
 
 # Heat map for correlations
 cc <- round(cor(num_train),2)
@@ -104,8 +104,6 @@ ok <- apply(abs(cc0) >= threshold, 1, any)
 cc <- cc[ok, ok]
 
 
-
- 
 
 # reduce the size of correlation matrix
 melted_corr_mat <- melt(cc)
