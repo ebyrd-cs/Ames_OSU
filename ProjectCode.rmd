@@ -118,4 +118,65 @@ geom_text(aes(Var1, Var2, label = value),
           color = "black", size = 3) +
    theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
   scale_fill_gradient(low = "#ffffff", high = "#ff0000", guide = "colorbar")
+  # linear models
+
+lm.fit_cor <- lm(SalePrice ~ OverallQual + TotalBsmtSF + GrLivArea + GarageCars, data = num_train)
+summary(lm.fit_cor)
+pred.lm_cor <- predict(lm.fit_cor, newdata = num_test, type = "response")
+mean(sum((num_test$SalePrice - pred.lm_cor)^2))
+```
+
+```{r}
+## Sophia's Work
+library(glmnet)
+library(pls)
+
+#with ethan predictors
+train.x=model.matrix(SalePrice~OverallQual + TotalBsmtSF + GrLivArea + GarageCars, num_train)[,-1] 
+train.y=num_train$SalePrice
+test.x=model.matrix(SalePrice~OverallQual + TotalBsmtSF + GrLivArea + GarageCars, num_test)[,-1] 
+test.y=num_test$SalePrice
+
+# Using all predictors
+train.x=model.matrix(SalePrice~.,num_train)[,-1] 
+train.y=num_train$SalePrice
+test.x=model.matrix(SalePrice~.,num_test)[,-1] 
+test.y=num_test$SalePrice
+
+#RIDGE CV
+ridge.cv = cv.glmnet(train.x,train.y,alpha=0)
+lambda.cv = ridge.cv$lambda.min
+lambda.cv 
+
+#fit ridge
+fit.ridge = glmnet(train.x,train.y,alpha=0,lambda=lambda.cv)
+pred.ridge = predict(fit.ridge,test.x)
+mean((test.y-pred.ridge)^2)
+coef(fit.ridge)
+
+#LASSO CV
+lasso.cv = cv.glmnet(train.x,train.y,alpha=1)
+lambda.cv = lasso.cv$lambda.min
+lambda.cv 
+
+#fit lasso
+fit.lasso = glmnet(train.x,train.y,alpha=1,lambda=lambda.cv)
+pred.lasso = predict(fit.lasso,test.x)
+mean((test.y-pred.lasso)^2)
+coef(fit.lasso)
+
+#fit PCR
+fit.pcr = pcr(SalePrice~.,data=num_train,scale=TRUE,validation="CV")
+summary(fit.pcr)
+
+pred.pcr = predict(fit.pcr,test.x)
+mean((test.y-pred.pcr)^2)
+
+#fit PLS
+fit.pls = plsr(SalePrice~.,data=num_train,scale=TRUE,validation="CV")
+summary(fit.pls)
+
+pred.pls = predict(fit.pls,test.x)
+mean((test.y-pred.pls)^2)
+
 ```
