@@ -184,8 +184,5 @@ summary(fit.pls)
 pred.pls = predict(fit.pls,test.x)
 mean((test.y-pred.pls)^2)
 
-=======
-
-
 # Regularization + Principle Components.
 ```
