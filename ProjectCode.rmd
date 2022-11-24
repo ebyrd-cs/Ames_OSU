@@ -124,8 +124,8 @@ geom_text(aes(Var1, Var2, label = value),
    theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
   scale_fill_gradient(low = "#ffffff", high = "#ff0000", guide = "colorbar")
 
-# linear models
 
+# linear models
 lm.fit_cor <- lm(SalePrice ~ OverallQual + TotalBsmtSF + GrLivArea + GarageCars, data = num_train)
 summary(lm.fit_cor)
 pred.lm_cor <- predict(lm.fit_cor, newdata = num_test, type = "response")
