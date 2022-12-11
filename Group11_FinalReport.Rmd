@@ -1,0 +1,195 @@
+---
+title: "Group11_FinalReport"
+author: "Ethan Byrd"
+date: "2022-12-10"
+output: pdf_document
+---
+
+```{r include=FALSE echo=FALSE message = FALSE}
+
+library(Hmisc)
+library(MASS)
+library(glmnet)
+library(pls)
+library(forcats)
+library(fastDummies)
+library(tidyverse)
+
+train <- read.csv("train.csv")[,-1]
+test <- read.csv("test_new.csv")[,-1]
+
+```
+
+
+#Data Exploration  
+---
+\
+\
+\
+  Taking a look at the data, we see 46 categorical variables and 37 numeric variables.\
+There are only a some missing values in the numeric subset seen for LotFrontage and\
+MasVrnArea. As a result, we decided to fill those in with the variables corresponding\
+median value. The categorical variables were a bit messier. There were many missing values\
+throughout the categorical variables. However, in this case it meant that No factor level\
+applied for that variables. In other words, a true NA. So, we decided to fill NAs as a\
+string "None" to preserve it as a level.
+\
+\
+\
+  
+```{r}
+
+#describe(Filter(is.character,train))
+#describe(Filter(is.character,test))
+#describe(Filter(is.numeric,train))
+
+train <- train %>%
+  mutate(across(where(is.character), ~replace_na(.,"None")))
+
+train <- train %>%
+  mutate(across(where(is.numeric), ~replace_na(as.double(.), median(as.double(.), na.rm = TRUE))))
+
+test <- test %>%
+  mutate(across(where(is.character), ~replace_na(., "None")))
+
+test <- test %>%
+  mutate(across(where(is.numeric), ~replace_na(as.double(.), median(as.double(.), na.rm = TRUE))))
+
+train[sapply(train, is.character)] <- lapply(train[sapply(train, is.character)], 
+                                       as.factor)
+test[sapply(test, is.character)] <- lapply(test[sapply(test, is.character)], 
+                                       as.factor)
+```
+\
+\
+\
+  When looking at a histogram for our response variable. There is a largely noticeable\
+right skew for both the testing and training data. Moreover, some very large SalePrice\
+values are present in the training data and not in the testing data. This could cause\
+issues moving forward when testing the model. Really, testing on data that looks different\
+than the data we trained on will affect test MSE and our model's accuracy overall.\
+When model-building, we saw that the high-end outliers for test and train sets affect\
+model performance by a fairly significant amount. As a result, we decided to report a model\
+with outliers and a model without them.
+\
+\
+\
+```{r}
+
+hist(train$SalePrice, breaks = 25, main = "Histogram of SalePrice ($) for training data", col = "navy",
+     xlab = "SalePrice ($)")
+hist(test$SalePrice, breaks = 25, main = "Histogram of SalePrice ($) for test data", col = "navy",
+     xlab = "SalePrice ($)")
+
+out_test <- sort(test$SalePrice, decreasing = TRUE)[1:15]
+out_train <- sort(train$SalePrice, decreasing = TRUE)[1:15]
+
+train <- train[which(!train$SalePrice %in% out_train),]
+test <- test[which(!test$SalePrice %in% out_test),]
+
+
+lm.fit <- lm(SalePrice~., data = train)
+hist(lm.fit$residuals)
+plot(lm.fit)
+
+```
+\
+\
+\
+  Here we went ahead and ranked categorical feature importance by calculating\
+a MLR model and ranking the absolute value of the betas. This ranking method\
+gives us a way to see which categorical variables have the most significant affect\
+on the response. This allowed us to eliminate redundant and less-correlated categorical\
+predictors without significantly sacrificing model accuracy.
+\
+\
+\
+```{r}
+
+
+model.lm <- lm(SalePrice ~ ., data = train)
+betas <- summary(model.lm)$coefficients
+betas[,'Estimate'] <- abs(betas[,'Estimate'])
+betas <- betas[2:162,]
+
+betas <- betas[order(betas[,'Estimate'],decreasing=TRUE),]
+barplot( betas[,'Estimate'], names.arg = rownames(betas))
+barplot(betas[1:9,'Estimate'], names.arg = rownames(betas)[1:9]) 
+
+
+vars_to_keep <- c("RoofMatl", "Condition2", "Neighborhood", "KitchenQual", "Utilities", "HeatingQC", "ExterCond", "Exterior1st", "ExterQual")
+train <- train %>% select(vars_to_keep, colnames(Filter(is.numeric, train)))
+test <- test %>% select(vars_to_keep, colnames(Filter(is.numeric, test)))
+vars_to_refactor <- c("ExterQual", "ExterCond", "HeatingQC", "KitchenQual")
+
+for( i in 1:4) {
+  test$vars_to_refactor[i] <- factor(test$vars_to_refactor[i],
+                                               order = TRUE,
+                                               levels = c("Po", "Fa", "TA", "Gd", "Ex"))
+}
+for( i in 1:4) {
+  train$vars_to_refactor[i] <- factor(train$vars_to_refactor[i],
+                                               order = TRUE,
+                                               levels = c("Po", "Fa", "TA", "Gd", "Ex"))
+}
+
+train <- train %>% select(-Utilities)
+test <- test %>% select(-Utilities)
+train <- train %>% select(-Exterior1st)
+test <- test %>% select(-Exterior1st)
+train <- train %>% select(-Condition2)
+test <- test %>% select(-Condition2)
+
+```
+\
+\
+\
+# Model Building
+---
+\
+\
+\
+```{r}
+
+set.seed(5)
+
+train.x <- model.matrix(SalePrice~.,train)[,-1] 
+train.y <- train$SalePrice
+test.x <- model.matrix(SalePrice~.,test)[,-1] 
+test.y <- test$SalePrice
+
+lasso.cv = cv.glmnet(train.x,train.y,alpha=1)
+lambda.cv = lasso.cv$lambda.min
+lambda.cv 
+
+test.x <- test.x[,intersect(colnames(train.x),colnames(test.x))]
+train.x <- train.x[,intersect(colnames(train.x),colnames(test.x))]
+
+#fit lasso
+fit.lasso = glmnet(train.x,train.y,alpha=1,lambda=lambda.cv)
+pred.lasso = predict(fit.lasso, test.x)
+pred.lasso.train = predict(fit.lasso,train.x)
+mean((test.y-pred.lasso)^2)
+
+coef(fit.lasso)
+
+#fit ridge
+ridge.cv = cv.glmnet(train.x,train.y,alpha=0)
+lambda.cv = ridge.cv$lambda.min
+lambda.cv 
+
+fit.ridge = glmnet(train.x,train.y,alpha=0,lambda=lambda.cv)
+pred.ridge = predict(fit.ridge,test.x)
+mean((test.y-pred.ridge)^2)
+
+#fit PCR
+fit.pcr = pcr(SalePrice~.,data=Filter(is.numeric,train),scale=TRUE,validation="CV")
+pred.pcr = predict(fit.pcr,Filter(is.numeric,test), ncomp = 29)
+mean((test.y-pred.pcr)^2)
+
+```
+\
+\
+\
+# Results
+---
