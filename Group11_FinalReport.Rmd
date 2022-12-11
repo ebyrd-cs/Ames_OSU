@@ -10,13 +10,12 @@ output: pdf_document
 library(Hmisc)
 library(MASS)
 library(glmnet)
-library(pls)
 library(forcats)
-library(fastDummies)
 library(tidyverse)
 
 train <- read.csv("train.csv")[,-1]
 test <- read.csv("test_new.csv")[,-1]
+
 
 ```
 
@@ -28,11 +27,15 @@ test <- read.csv("test_new.csv")[,-1]
 \
   Taking a look at the data, we see 46 categorical variables and 37 numeric variables.\
 There are only a some missing values in the numeric subset seen for LotFrontage and\
-MasVrnArea. As a result, we decided to fill those in with the variables corresponding\
-median value. The categorical variables were a bit messier. There were many missing values\
-throughout the categorical variables. However, in this case it meant that No factor level\
-applied for that variables. In other words, a true NA. So, we decided to fill NAs as a\
-string "None" to preserve it as a level.
+MasVrnArea. As a result, we decided to fill missing values with 0 because we felt it was safer\
+option and better represented the information the feature is supposed convey.\
+\
+  The categorical variables were a bit messier. They had many missing values\
+throughout the features. However, in many cases it meant that No factor level\
+applied for that variable. In other words, a true NA. So, we decided to fill these as a\
+string "None" to preserve it as a level. In the case that NA referred to the lowest\
+factor level, we decided it was best to remove those features. This decision was ultimately\
+motivated by the goal to reduce complexity and redundancy.
 \
 \
 \
@@ -47,18 +50,25 @@ train <- train %>%
   mutate(across(where(is.character), ~replace_na(.,"None")))
 
 train <- train %>%
-  mutate(across(where(is.numeric), ~replace_na(as.double(.), median(as.double(.), na.rm = TRUE))))
+  mutate(across(where(is.numeric), ~replace_na(as.double(.), 0)))
 
 test <- test %>%
   mutate(across(where(is.character), ~replace_na(., "None")))
 
 test <- test %>%
-  mutate(across(where(is.numeric), ~replace_na(as.double(.), median(as.double(.), na.rm = TRUE))))
+  mutate(across(where(is.numeric), ~replace_na(as.double(.),0)))
 
 train[sapply(train, is.character)] <- lapply(train[sapply(train, is.character)], 
                                        as.factor)
 test[sapply(test, is.character)] <- lapply(test[sapply(test, is.character)], 
                                        as.factor)
+
+
+variables_to_remove <- c("Alley", "BsmtQual", "BsmtCond", "BsmtExposure", "BsmtFinType1", "BsmtFinType2", "FireplaceQu", "GarageType", "GarageFinish", "GarageQual", "GarageCond", "PoolQC", "Fence",  "MiscFeature")
+
+
+train <- train %>% select(-variables_to_remove)
+test <- test %>% select(-variables_to_remove)
 ```
 \
 \
@@ -69,7 +79,7 @@ values are present in the training data and not in the testing data. This could 
 issues moving forward when testing the model. Really, testing on data that looks different\
 than the data we trained on will affect test MSE and our model's accuracy overall.\
 When model-building, we saw that the high-end outliers for test and train sets affect\
-model performance by a fairly significant amount. As a result, we decided to report a model\
+model performance by a fairly significant amount. Therefore, we decided to report a model\
 with outliers and a model without them.
 \
 \
@@ -86,7 +96,14 @@ out_train <- sort(train$SalePrice, decreasing = TRUE)[1:15]
 
 train <- train[which(!train$SalePrice %in% out_train),]
 test <- test[which(!test$SalePrice %in% out_test),]
+```
 
+# Model Assumption
+---
+
+```{r}
+
+# Model assumptions OLS
 
 lm.fit <- lm(SalePrice~., data = train)
 hist(lm.fit$residuals)
@@ -96,9 +113,9 @@ plot(lm.fit)
 \
 \
 \
-  Here we went ahead and ranked categorical feature importance by calculating\
-a MLR model and ranking the absolute value of the betas. This ranking method\
-gives us a way to see which categorical variables have the most significant affect\
+  Here we ranked categorical feature importance by calculating\
+a MLR model and ranked the absolute value of the betas. This ranking method\
+gives us a way to see which categorical variables have the most significant effect\
 on the response. This allowed us to eliminate redundant and less-correlated categorical\
 predictors without significantly sacrificing model accuracy.
 \
@@ -118,8 +135,10 @@ barplot(betas[1:9,'Estimate'], names.arg = rownames(betas)[1:9])
 
 
 vars_to_keep <- c("RoofMatl", "Condition2", "Neighborhood", "KitchenQual", "Utilities", "HeatingQC", "ExterCond", "Exterior1st", "ExterQual")
+
 train <- train %>% select(vars_to_keep, colnames(Filter(is.numeric, train)))
 test <- test %>% select(vars_to_keep, colnames(Filter(is.numeric, test)))
+
 vars_to_refactor <- c("ExterQual", "ExterCond", "HeatingQC", "KitchenQual")
 
 for( i in 1:4) {
@@ -133,13 +152,6 @@ for( i in 1:4) {
                                                levels = c("Po", "Fa", "TA", "Gd", "Ex"))
 }
 
-train <- train %>% select(-Utilities)
-test <- test %>% select(-Utilities)
-train <- train %>% select(-Exterior1st)
-test <- test %>% select(-Exterior1st)
-train <- train %>% select(-Condition2)
-test <- test %>% select(-Condition2)
-
 ```
 \
 \
@@ -151,7 +163,11 @@ test <- test %>% select(-Condition2)
 \
 ```{r}
 
-set.seed(5)
+
+# Add correlations motivate why we compare these models.
+
+
+set.seed(3)
 
 train.x <- model.matrix(SalePrice~.,train)[,-1] 
 train.y <- train$SalePrice
@@ -193,3 +209,11 @@ mean((test.y-pred.pcr)^2)
 \
 # Results
 ---
+```{r}
+
+
+# report MSE and discuss benefits/limitations to the Lasso choice. Visualization
+# and explanation for Lasso model accuracy compared to others.
+
+
+```
